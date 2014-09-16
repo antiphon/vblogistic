@@ -1,0 +1,69 @@
+\name{vblogit}
+\alias{vblogit}
+\title{Fit logistic regression model using VB approximation}
+\usage{
+vblogit(y, X, offset, eps = 0.01, m0, S0, S0i, xi0, verb = FALSE,
+  maxiter = 1000, ...)
+}
+\arguments{
+  \item{y}{binary vector of responses, length n}
+
+  \item{X}{n x p matrix of covariates, including 1-column
+  for intercept}
+
+  \item{offset}{n-vector of offsets (or 1-vector which will
+  be replicated)}
+
+  \item{eps}{convergence criterion, increase in
+  log-likelihood is no more than this}
+
+  \item{m0}{p-vector of prior means}
+
+  \item{S0}{p x p prior covariance matrix}
+
+  \item{xi0}{p-vector of initial}
+
+  \item{verb}{verbose output, logical}
+
+  \item{maxiter}{upper limit for iterations}
+
+  \item{...}{ignored.
+
+  Computes the posterior distribution of regression
+  coefficients in logistic regression using the method of
+  Jaakkola&Jordan 1996.}
+}
+\description{
+Bayesian fit of logistic regression model. p coefficients,
+n observations.
+}
+\examples{
+## some data
+n <- 100
+p <- 10
+X <- matrix( rnorm(n*p), ncol=p)
+theta <- rnorm(p)
+prob <- 1/(1+exp(-X\%*\%theta))
+y <- rbinom(n, 1, prob)
+
+## See that it works:
+## vb:
+fit_vb <- vblogit(y, X, verb=TRUE)
+## glm:
+fit_glm <- glm(y ~ -1+X, family=binomial)
+
+coefs <- cbind(vb=fit_vb$coef, glm=fit_glm$coef)
+
+summary(fit_vb)
+
+## compare vb and glm
+plot(coefs, main="Estimates")
+abline(0,1)
+
+## Compare to true coefficients
+plot(coefs[,1]-theta)
+points(coefs[,2]-theta, col=3, pch=4)
+abline(h=0)
+legend("topright", c("glm","vblogit"), col=c(1,3), pch=c(1,4))
+}
+
