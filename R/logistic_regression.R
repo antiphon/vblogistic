@@ -70,16 +70,15 @@ vblogit<-function(y, X, offset, eps=1e-2, m0, S0, S0i, xi0, verb=FALSE, maxiter=
   #' offset
   if(missing('offset')) offset <- 0
   if(length(offset)<N) offset <- rep(offset, N)[1:N]
-  #
+  #'
   #'
   #' Priors and initial estimates.
   if(missing(S0))S0   <- Diagonal(1e5, n=K)
   if(missing(S0i))S0i <- solve(S0)
   if(missing(m0))m0   <- rep(0, K)
   #' Constants:
-  OO <- offset%*%t(offset)
-  oo2 <- offset*offset
-  LE_CONST <- -0.5*t(m0)%*%S0i%*%m0 -0.5*determinant(S0)$mod - 0.5*sum(oo2)
+  oo2 <- offset^2
+  LE_CONST <- as.numeric( -0.5*t(m0)%*%S0i%*%m0 - 0.5*determinant(S0)$mod + sum((y-0.5)*offset) ) 
   Sm0 <- S0i%*%m0
   #' start values for xi:
   if(missing(xi0))xi0   <- rep(4, N)
@@ -91,21 +90,26 @@ vblogit<-function(y, X, offset, eps=1e-2, m0, S0, S0i, xi0, verb=FALSE, maxiter=
   ## helper functions needed:
   lambda <- function(x)  -tanh(x/2)/(4*x)
   gamma <- function(x)  x/2 - log(1+exp(x)) + x*tanh(x/2)/4
-  #' Use Matrices
-  m <- Matrix(m0)
-  S <- Matrix(S0)
-  Si <- Matrix(S0i)
-  xi <- xi0
   ###
   ## loop
   le <- -Inf
   le_hist <- le
   loop <- TRUE
   iter <- 0
-  la <- lambda(xi)
+  #' initials:
+  la <- lambda(xi0)
+  L <- Diagonal( x = la )
+  Si <- S0i - 2 * t(X)%*%L%*%X
+  S <- solve(Si)
+  m <- S%*%( t(X)%*%( (y-0.5) + 2*L%*%offset ) + Sm0  )
+  #'
+  #' Main loop:
   while(loop){
     old <- le
-    # update all
+    #' update variational parameters
+    xi2 <- diag(  X%*%( S+m%*%t(m) )%*%t(X)+ 2*(X%*%m)%*%t(offset) ) + oo2
+    xi <- sqrt(xi2)
+    la <- lambda(xi)
     #est <- update(est)
     L <- Diagonal( x = la )
     #' update post covariance
@@ -113,13 +117,8 @@ vblogit<-function(y, X, offset, eps=1e-2, m0, S0, S0i, xi0, verb=FALSE, maxiter=
     S <- solve(Si)
     #' update post mean
     m <- S%*%( t(X)%*%( (y-0.5) + 2*L%*%offset ) + Sm0  )
-    #' update variational parameters
-    xi2 <- diag(  X%*%(S+m%*%t(m))%*%t(X)+ 2*(X%*%m)%*%t(offset) ) + oo2
-    xi <- sqrt(xi2)
-    la <- lambda(xi)
     ## compute the log evidence
-    le <-  as.numeric(  0.5*determinant(S)$mod  + sum( gamma(xi) ) + 
-      sum(oo2*la) + 0.5*t(m)%*%Si%*%m + LE_CONST    )
+    le <-  as.numeric( 0.5*determinant(S)$mod + sum( gamma(xi) ) + sum(oo2*la) + 0.5*t(m)%*%Si%*%m + LE_CONST    )
     #' check convergence
     d <- le - old
     if(d < 0) warning("Log-evidence decreasing, try different starting values for xi.")
@@ -131,15 +130,26 @@ vblogit<-function(y, X, offset, eps=1e-2, m0, S0, S0i, xi0, verb=FALSE, maxiter=
   cat2("\n")
   ## done. Compile:
   est <- list(m=m, S=S, Si=Si, xi=xi, L=L)
-  est$logLik <- le[1]
-  est$logp_hist <- le_hist
-  
+  #' 
+  #' Marginal evidence
+  est$logLik <- le
+  #'
+  #' Compute max logLik with the Bernoulli model, this should be what glm gives:
+  est$logLik_ML <- as.numeric( t(y)%*%(X%*%m+offset) - sum( log( 1 + exp(X%*%m+offset)) ) )
+  #' 
+  #' Max loglik with the approximation
+  est$logLik_ML2 <- as.numeric(  t(y)%*%(X%*%m + offset)  + t(m)%*%t(X)%*%L%*%X%*%m - 0.5*sum(X%*%m) + sum(gamma(xi)) +
+                                   2*t(offset)%*%L%*%X%*%m + t(offset)%*%L%*%offset - 0.5 * sum(offset)  )
+  #' 
+  #' some additional parts, like in glm output
   est$coefficients <- est$m[,1]
   names(est$coefficients) <- varnames
   est$call <- sys.call()
+  est$converged <- !(maxiter==iter)
+  #' additional stuff
+  est$logp_hist <- le_hist
   est$parameters <- list(eps=eps, maxiter=maxiter)
   est$priors <- list(m=m0, S=S0)
-  est$converged <- !(maxiter==iter)
   est$iterations <- iter
   class(est) <- "vblogitfit"
   ## return
