@@ -98,30 +98,25 @@ vblogit <- function(y, X, offset, eps=1e-2, m0, S0, S0i, xi0, verb=FALSE, maxite
   iter <- 0
   #' initials:
   la <- lambda(xi0)
-  Si <- S0i - 2 * t(X*la)%*%X
+  L <- Diagonal( x = la )
+  Si <- S0i - 2 * t(X)%*%L%*%X
   S <- solve(Si)
-  m <- S%*%( t(X)%*%( (y-0.5) + 2*la*offset ) + Sm0  )
+  m <- S%*%( t(X)%*%( (y-0.5) + 2*L%*%offset ) + Sm0  )
   #'
   #' Main loop:
   while(loop){
     old <- le
     #' update variational parameters
-    M <- S+m%*%t(m)
-    #' force symmetric in case of tiny numerical errors
-    M <- (M+t(M))/2
-    L <- t(chol(M))
-    V <- X%*%L
-    dR <- rowSums(V^2)
-    dO <- 2*offset*(X%*%m)[,1]
-    xi2 <- dR + dO + oo2
-    
+    xi2 <- diag(  X%*%( S+m%*%t(m) )%*%t(X)+ 2*(X%*%m)%*%t(offset) ) + oo2
     xi <- sqrt(xi2)
     la <- lambda(xi)
+    #est <- update(est)
+    L <- Diagonal( x = la )
     #' update post covariance
-    Si <- S0i - 2 * t(X*la)%*%X
+    Si <- S0i - 2 * t(X)%*%L%*%X
     S <- solve(Si)
     #' update post mean
-    m <- S%*%( t(X)%*%( (y-0.5) + 2*la*offset ) + Sm0  )
+    m <- S%*%( t(X)%*%( (y-0.5) + 2*L%*%offset ) + Sm0  )
     ## compute the log evidence
     le <-  as.numeric( 0.5*determinant(S)$mod + sum( gamma(xi) ) + sum(oo2*la) + 0.5*t(m)%*%Si%*%m + LE_CONST    )
     #' check convergence
@@ -134,7 +129,7 @@ vblogit <- function(y, X, offset, eps=1e-2, m0, S0, S0i, xi0, verb=FALSE, maxite
   if(iter == maxiter) warning("Maximum iteration limit reached.")
   cat2("\n")
   ## done. Compile:
-  est <- list(m=m, S=S, Si=Si, xi=xi, lambda_xi=la)
+  est <- list(m=m, S=S, Si=Si, xi=xi, L=L)
   #' 
   #' Marginal evidence
   est$logLik <- le
@@ -143,8 +138,8 @@ vblogit <- function(y, X, offset, eps=1e-2, m0, S0, S0i, xi0, verb=FALSE, maxite
   est$logLik_ML <- as.numeric( t(y)%*%(X%*%m+offset) - sum( log( 1 + exp(X%*%m+offset)) ) )
   #' 
   #' Max loglik with the approximation
-  est$logLik_ML2 <- as.numeric(  t(y)%*%(X%*%m + offset)  + t(m)%*%t(X*la)%*%X%*%m - 0.5*sum(X%*%m) + sum(gamma(xi)) +
-                                   2*t(offset*la)%*%X%*%m + t(offset*la)%*%offset - 0.5 * sum(offset)  )
+  est$logLik_ML2 <- as.numeric(  t(y)%*%(X%*%m + offset)  + t(m)%*%t(X)%*%L%*%X%*%m - 0.5*sum(X%*%m) + sum(gamma(xi)) +
+                                   2*t(offset)%*%L%*%X%*%m + t(offset)%*%L%*%offset - 0.5 * sum(offset)  )
   #' 
   #' some additional parts, like in glm output
   est$coefficients <- est$m[,1]
