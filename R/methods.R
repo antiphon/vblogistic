@@ -21,26 +21,36 @@ print.vblogitfit <- function(x, ...) {
 #' vblogit fit summary method
 #' @param x vblogit object
 #' @param ... ignored.
-#' @exportMethod summary
 #' @export
 
 summary.vblogitfit <- function(x, ...) {
-  cat("Variational Bayes logistic regression fit\n")
-  cat("\nCall: ")
-  print(x$call)
-  cat("\nCoefficients and posterior 95% central regions:\n")
   vna <- names(x$coefficients)
   s <- sqrt(diag(x$S))
   q0 <- qnorm(c(0.025, 0.975))
   m <- as.numeric(x$m)
-  df <- data.frame(estimate=m, "low 0.05"=m+s*q0[1], "high 97.5"=m+s*q0[2], "prior mean"=x$priors$m, "prior var"=diag(x$priors$S))
+  df <- data.frame(estimate=m, sd=s, "low 0.05"=m+s*q0[1], "high 97.5"=m+s*q0[2], "prior mean"=x$priors$m, "prior var"=diag(x$priors$S))
   rownames(df) <- vna
-  print(df)
+  x$table <- df
+  class(x) <- c("sum_vblogitfit", class(x))
+  x
+}
+
+#' Print for vblogit fit summary
+#' @param x vblogit object
+#' @param ... ignored.
+#' @export
+
+print.sum_vblogitfit <- function(x, ...) {
+  cat("Variational Bayes logistic regression fit\n")
+  cat("\nCall: ")
+  print(x$call)
+  cat("\nCoefficients and posterior 95% central regions:\n")
+  print(x$table)
   cat("\n")
   cat("Log-likelihood:", x$logLik)
   cat("\n")
+  
 }
-
 
 #' Coef
 #' @param x object from vblogit

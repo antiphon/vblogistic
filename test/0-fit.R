@@ -4,8 +4,8 @@ library(devtools)
 load_all(".")
 
 
-n<-400
-p <- 10
+n <- 800 + 4*800
+p <- 30
 np <- 3
 set.seed(2)
 #' add noise components
