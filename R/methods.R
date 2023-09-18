@@ -1,7 +1,6 @@
 #' vblogit fit print method
 #' @param x vblogit object
 #' @param ... ignored.
-#' @exportMethod print
 #' @export
 
 print.vblogitfit <- function(x, ...) {
@@ -19,11 +18,14 @@ print.vblogitfit <- function(x, ...) {
 }
 
 #' vblogit fit summary method
+#' Summary method for logistic regression with approximately Normal posterior
+#' 
 #' @param x vblogit object
 #' @param ... ignored.
+#' @importFrom Matrix diag
 #' @export
-
-summary.vblogitfit <- function(x, ...) {
+summary.vblogitfit <- function(object, ...) {
+  x <- object
   vna <- names(x$coefficients)
   s <- sqrt(diag(x$S))
   q0 <- qnorm(c(0.025, 0.975))
@@ -56,7 +58,7 @@ print.sum_vblogitfit <- function(x, ...) {
 #' @param x object from vblogit
 #' @param ... ignored.
 #' 
-#' @exportMethod coef
+#' @export
 coef.vblogitfit <- function(x, ...) x$coefficients
 
 
@@ -64,7 +66,6 @@ coef.vblogitfit <- function(x, ...) x$coefficients
 #' 
 #' Plot something.
 #' 
-#' @exportMethod plot
 #' @param x object from vblogit
 #' @param ... passed to plot.vblogitfit_marginals.
 #' @export
@@ -75,14 +76,13 @@ plot.vblogitfit <- function(x, ...){
 
 #' Marginals plot
 #' @param x object from vblogit
+#' @param ncol default:2
 #' @param ... ignored.
 #' 
-#' @exportMethod plot
 #' @export
-plot.vblogitfit_marginals <- function(x, ...){
+plot.vblogitfit_marginals <- function(x, ncol = 2, ...){
   nn <- names(x)
   n <- length(nn)
-  ncol <- 2
   nrow <- ceiling(n/ncol)
   par(mfrow=c(nrow, ncol))
   for(i in 1:n) plot(x[[i]], xlab=nn[i], ylab="posterior density", main=nn[i], type="l", col=4)
@@ -90,7 +90,6 @@ plot.vblogitfit_marginals <- function(x, ...){
 #' Marginals print
 #' @param x object from vblogit
 #' @param ... ignored.
-#' @exportMethod print
 #' @export
 print.vblogitfit_marginals <- function(x, ...){
   nn <- names(x)
@@ -100,7 +99,6 @@ print.vblogitfit_marginals <- function(x, ...){
 #' Log-evidence
 #' @param x object from vblogit
 #' @param ... ignored.
-#' @exportMethod logLik
 #' @export
 
 logLik.vblogitfit <- function(x, ...) {
