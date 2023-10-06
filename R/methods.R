@@ -105,3 +105,16 @@ logLik.vblogitfit <- function(x, ...) {
   x$logLik
 }
 
+#' Var-Cov Method
+#' 
+#' @param object 'vblogitfit' object 
+#' @param ... not used 
+#' @export
+vcov.vblogitfit <- function(object, ...) {
+  S <- as.matrix(object$S)
+  # dimnames
+  n <- names(coef(object))
+  rownames(S) <- colnames(S) <- n
+  S
+}
+

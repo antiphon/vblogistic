@@ -1,8 +1,8 @@
 Package: vblogistic
 Type: Package
 Title: Logistic regression using Variational Bayes approximation
-Version: 1.1
-Date: 2023-09-18
+Version: 1.2
+Date: 2023-10-06
 Author: Tuomas Rajala
 Maintainer: Tuomas Rajala <tuomas.rajala@iki.fi>
 Description: Fit logistic regression model using Variational Bayes

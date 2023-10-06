@@ -58,7 +58,7 @@ vblogit <- function(y, X, offset, eps=1e-2, m0, S0, S0i, xi0, verb=FALSE, maxite
   ## "*0" are fixed priors.
   ##
   cat2 <- if(verb) cat else function(...) NULL
-  varnames <- colnames(data.frame(as.matrix(X[1:2,])))
+  varnames <- colnames(data.frame(as.matrix(X[1,, drop=FALSE])))
   
   ## Write 
   X <- Matrix(X)
@@ -106,7 +106,7 @@ vblogit <- function(y, X, offset, eps=1e-2, m0, S0, S0i, xi0, verb=FALSE, maxite
   while(loop){
     old <- le
     # update variational parameters
-    M <- S+m%*%t(m)
+    M <- S + m%*%t(m)
     # force symmetric in case of tiny numerical errors
     M <- (M+t(M))/2
     L <- t(chol(M))
@@ -114,7 +114,6 @@ vblogit <- function(y, X, offset, eps=1e-2, m0, S0, S0i, xi0, verb=FALSE, maxite
     dR <- rowSums(V^2)
     dO <- 2*offset*(X%*%m)[,1]
     xi2 <- dR + dO + oo2
-    
     xi <- sqrt(xi2)
     la <- lambda(xi)
     # update post covariance
